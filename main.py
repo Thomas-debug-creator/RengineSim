@@ -37,7 +37,6 @@ def main():
             if distance_to_center <= non_combustion_radius:
                 prop_indices.append([i,j])
     
-    print(prop_indices)
 
     ## Combustion parameters
     max_combustion = 10
@@ -71,6 +70,8 @@ def main():
     delta_t = 1
     current_time = 0
 
+    nb_burning_elements = [sum(prop[i,j] > tolerance for i in range(Nx) for j in range(Ny))]
+
     # Compute combustion radius
     print("Computing ignition radius")
     combustion_radius = combustion_propagation_rate * delta_t
@@ -89,12 +90,18 @@ def main():
         plot_propellant_surface(ax, prop, max_combustion, f"Propellant surface at time t = {current_time}")
         ims.append([im])
 
+
+        nb_burning_elements.append(sum(prop[i,j] > tolerance for i in range(Nx) for j in range(Ny) if (prop[i,j] < max_combustion)))
+
     
     ## Animated gif
     ani = animation.ArtistAnimation(fig, ims, interval=50, blit=True,
                                     repeat_delay=1000)
     ani.save("movie.mp4")
 
+    plt.show()
+
+    plt.plot(nb_burning_elements)
     plt.show()
 
 
