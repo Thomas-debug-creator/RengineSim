@@ -26,13 +26,25 @@ def main():
     prop = np.zeros((Nx,Ny))
 
     ## Propellant casing (non burning surface)
+    non_combustion_radius = 0.9
+
+    prop_indices = []
+
+    for i in range(Nx):
+        for j in range(Ny):
+            distance_to_center = math.sqrt((x[centerx] - x[i])**2 + (y[centery] - y[j])**2)
+
+            if distance_to_center <= non_combustion_radius:
+                prop_indices.append([i,j])
+    
+    print(prop_indices)
 
     ## Combustion parameters
     max_combustion = 10
     initial_combustion = 1
     combustion_rate = 1
     combustion_propagation_rate = 0.2
-    combustion_threshold = 3
+    combustion_threshold = 2
 
     # Propellant shape (star)
     print("Creating propellant shape")
@@ -55,7 +67,7 @@ def main():
     ims.append([im])
 
     ## Simulation
-    num_steps = 20
+    num_steps = 15
     delta_t = 1
     current_time = 0
 
@@ -64,7 +76,6 @@ def main():
     combustion_radius = combustion_propagation_rate * delta_t
 
     ref_ignition_indices = [[u - centerx,v - centery] for u in range(Nx) for v in range(Ny) if (math.sqrt((x[centerx] - x[u])**2 + (y[centery] - y[v])**2) <= combustion_radius)]
-    print(ref_ignition_indices)
 
     # Simulate steps
     print("Simulating")
@@ -72,7 +83,7 @@ def main():
     for n in range(num_steps):
         print(f'Simulating step {n}')
         current_time += delta_t
-        prop = simulate_next_step(prop, max_combustion, initial_combustion, combustion_rate, combustion_threshold, ref_ignition_indices)
+        prop = simulate_next_step(prop, max_combustion, initial_combustion, combustion_rate, combustion_threshold, ref_ignition_indices, prop_indices)
 
         im = plot_propellant_surface(ax, prop, max_combustion, f"Propellant surface at time t = {current_time}")
         plot_propellant_surface(ax, prop, max_combustion, f"Propellant surface at time t = {current_time}")
@@ -99,7 +110,7 @@ def plot_propellant_surface(ax, prop, max_combustion, title = "", animated = Tru
     if animated:
         return im
 
-def simulate_next_step(prop, max_combustion, initial_combustion, combustion_rate, combustion_threshold, ref_ignition_indices):
+def simulate_next_step(prop, max_combustion, initial_combustion, combustion_rate, combustion_threshold, ref_ignition_indices, prop_indices):
     new_prop = np.zeros_like(prop)
     burning_elements_indices = np.argwhere(prop > tolerance)
 
@@ -113,7 +124,7 @@ def simulate_next_step(prop, max_combustion, initial_combustion, combustion_rate
         ## Ignite other elements if burning enough
         if p >= combustion_threshold:                    
             # Ignite neighbours in the area of effect
-            neighbours = compute_non_burning_neighbours(prop, i, j, ref_ignition_indices)
+            neighbours = compute_non_burning_neighbours(prop, i, j, ref_ignition_indices, prop_indices)
             for [u,v] in neighbours:
                 new_prop[u,v] =  initial_combustion
 
@@ -121,7 +132,7 @@ def simulate_next_step(prop, max_combustion, initial_combustion, combustion_rate
     return new_prop
 
 
-def compute_non_burning_neighbours(prop, i, j, ref_ignition_indices):
+def compute_non_burning_neighbours(prop, i, j, ref_ignition_indices, prop_indices):
     neighbours = [] 
 
     ignition_indices = []
@@ -130,7 +141,8 @@ def compute_non_burning_neighbours(prop, i, j, ref_ignition_indices):
         new_u = np.clip(i + u, 0, prop.shape[0] - 1)
         new_v = np.clip(j + v, 0, prop.shape[1] - 1)
 
-        ignition_indices.append([new_u, new_v])
+        if ([new_u, new_v] in prop_indices):
+            ignition_indices.append([new_u, new_v])
 
     for [u,v] in ignition_indices:
         if prop[u,v] < tolerance:
