@@ -22,12 +22,15 @@ def create_grain_config(Nx, Ny, centerx, centery, x, y, max_combustion, grain_co
 
     if grain_config == "internal_tube_slots":
         tube_radius = 0.3
-        star_radius = 0.8
+        star_radius = 0.5
         nb_slots = 8
         create_grain_config_internal_tube_slots(prop, centerx, centery, x, y, max_combustion, star_radius, tube_radius, nb_slots)
     elif grain_config == "internal_tube":
-        tube_radius = 0.1
+        tube_radius = 0.3
         create_grain_config_internal_tube(prop, centerx, centery, x, y, max_combustion, tube_radius)
+    elif grain_config == "exteral_burning_rod":
+        inner_tube_radius = 0.7
+        create_grain_config_external_rod(prop, centerx, centery, x, y, max_combustion, inner_tube_radius)
 
     return prop
 
@@ -52,6 +55,15 @@ def create_grain_config_internal_tube(prop, centerx, centery, x, y, max_combusti
 
             if distance_to_center <= tube_radius:
                 prop[i,j] = max_combustion
+
+def create_grain_config_external_rod(prop, centerx, centery, x, y, max_combustion, inner_tube_radius):
+    for i in range(x.shape[0]):
+        for j in range(y.shape[0]):
+            distance_to_center = math.sqrt((x[centerx] - x[i])**2 + (y[centery] - y[j])**2)
+
+            if distance_to_center > inner_tube_radius:
+                prop[i,j] = max_combustion
+
 
 
 def create_grain_casing(x, y, centerx, centery, grain_radius = 0.9):

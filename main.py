@@ -34,7 +34,7 @@ def main():
 
     # Propellant initial grain configuration (star)
     print("Creating initial grain configuration")
-    grain_config = "internal_tube"
+    grain_config = "exteral_burning_rod"
     prop = create_grain_config(Nx, Ny, centerx, centery, x, y, max_combustion, grain_config)
 
     ## Plot initial condition
@@ -43,7 +43,7 @@ def main():
     ims.append([im])
 
     ## Simulation
-    num_steps = 15
+    num_steps = 10
     delta_t = 1
     current_time = 0
 
