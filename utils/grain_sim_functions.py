@@ -1,0 +1,139 @@
+
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+import numpy as np
+import math
+
+tolerance = 0.01
+
+def initialize_sim_space(Nx, Ny):
+    "Nx and Ny must be odd!"
+    centerx = math.floor(Nx/2)
+    centery = math.floor(Ny/2)
+
+    x = np.linspace(-1,1,Nx)
+    y = np.linspace(-1,1,Ny)
+
+    return centerx, centery, x, y
+
+
+def create_grain_config(Nx, Ny, centerx, centery, initial_combustion, grain_config = "star_8"):
+    prop = np.zeros((Nx,Ny))
+
+    if grain_config == "star_8":
+        n_star = 7
+        n_star_diag = 5
+        create_grain_config_star8(prop, centerx, centery, initial_combustion, n_star, n_star_diag)
+
+    return prop
+
+def create_grain_config_star8(prop, centerx, centery, initial_combustion, n_star = 7, n_star_diag = 5):
+    for m in range(n_star):
+        prop[centerx + m, centery] = initial_combustion
+        prop[centerx, centery - m] = initial_combustion
+        prop[centerx - m, centery] = initial_combustion
+        prop[centerx, centery + m] = initial_combustion
+
+    for m in range(n_star_diag):
+        prop[centerx + m, centery + m] = initial_combustion
+        prop[centerx + m, centery - m] = initial_combustion
+        prop[centerx - m, centery - m] = initial_combustion
+        prop[centerx - m, centery + m] = initial_combustion
+
+def create_grain_casing(x, y, centerx, centery, grain_radius = 0.9):
+    "Return indices of the actual grain inside the casing assuming a circular shape"
+    "Elements inside these indices can burn, while those outside are considered out of the casing and are therefore not considered in the simulation"
+
+    prop_indices = []
+
+    for i in range(x.shape[0]):
+        for j in range(y.shape[0]):
+            distance_to_center = math.sqrt((x[centerx] - x[i])**2 + (y[centery] - y[j])**2)
+
+            if distance_to_center <= grain_radius:
+                prop_indices.append([i,j])
+
+    return prop_indices
+
+
+def compute_nb_burning_elements(prop, Nx, Ny, max_combustion):
+    return sum(prop[i,j] > tolerance for i in range(Nx) for j in range(Ny) if prop[i,j] < max_combustion)
+
+def compute_ignition_radius(combustion_propagation_rate, delta_t, Nx, Ny, centerx, centery, x, y):
+    "Compute the local indices which can be ignited by a burning element"
+    combustion_radius = combustion_propagation_rate * delta_t
+
+    ref_ignition_indices = [[u - centerx,v - centery] for u in range(Nx) for v in range(Ny) if (math.sqrt((x[centerx] - x[u])**2 + (y[centery] - y[v])**2) <= combustion_radius)]
+
+    return ref_ignition_indices
+
+def simulate_next_step(prop, max_combustion, initial_combustion, combustion_rate, ignition_threshold, ref_ignition_indices, prop_indices):
+    new_prop = np.zeros_like(prop)
+
+    burning_elements_indices = np.argwhere(prop > tolerance)
+
+    for [i,j] in burning_elements_indices:
+        p = prop[i,j]
+    
+        ## Burn more
+        next_p = min(p + combustion_rate, max_combustion)
+        new_prop[i,j] = next_p
+
+        ## Ignite other elements if burning enough
+        if next_p >= ignition_threshold:                    
+            # Ignite neighbours in the area of effect
+            neighbours = compute_non_burning_neighbours(prop, i, j, ref_ignition_indices, prop_indices)
+            for [u,v] in neighbours:
+                new_prop[u,v] =  initial_combustion
+
+
+    return new_prop
+
+
+def compute_non_burning_neighbours(prop, i, j, ref_ignition_indices, prop_indices):
+    neighbours = [] 
+
+    ignition_indices = []
+
+    for [u,v] in ref_ignition_indices:
+        new_u = np.clip(i + u, 0, prop.shape[0] - 1)
+        new_v = np.clip(j + v, 0, prop.shape[1] - 1)
+
+        if ([new_u, new_v] in prop_indices):
+            ignition_indices.append([new_u, new_v])
+
+    for [u,v] in ignition_indices:
+        if prop[u,v] < tolerance:
+            neighbours.append([u,v])
+
+    return neighbours
+
+""" Plots """
+
+def plot_propellant_surface(ax, prop, max_combustion, title = "", animated = True):
+    
+    im = ax.imshow(prop, interpolation="bilinear", cmap = "hot", vmin = 0, vmax = max_combustion, animated = animated)
+    ax.set_title(title)
+    
+    ax.set_yticklabels([])
+    ax.set_xticklabels([])
+
+    if animated:
+        return im
+
+def process_gif(fig, ims, grain_config):
+    ani = animation.ArtistAnimation(fig, ims, interval=50, blit=True,
+                                    repeat_delay=1000)
+    ani.save(f'{grain_config}.mp4')
+
+    plt.show()
+
+def plot_combustion_surface(num_steps, nb_burning_elements, grain_config):
+    plt.plot(range(num_steps + 1), nb_burning_elements)
+    plt.xlabel("Simulation step")
+    plt.ylabel("Number of burning elements")
+    plt.title(f'Evolution of the combustion surface for a {grain_config} grain configuration')
+
+    plt.savefig(f'Combustion_surface_{grain_config}')
+
+    plt.show()
