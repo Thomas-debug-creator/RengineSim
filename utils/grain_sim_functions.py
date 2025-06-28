@@ -17,13 +17,16 @@ def initialize_sim_space(Nx, Ny):
     return centerx, centery, x, y
 
 
-def create_grain_config(Nx, Ny, centerx, centery, initial_combustion, grain_config = "star_8"):
+def create_grain_config(Nx, Ny, centerx, centery, x, y, initial_combustion, grain_config = "star_8"):
     prop = np.zeros((Nx,Ny))
 
     if grain_config == "star_8":
         n_star = 7
         n_star_diag = 5
         create_grain_config_star8(prop, centerx, centery, initial_combustion, n_star, n_star_diag)
+    elif grain_config == "internal_tube":
+        tube_radius = 0.2
+        create_grain_config_internal_tube(prop, centerx, centery, x, y, initial_combustion, tube_radius)
 
     return prop
 
@@ -39,6 +42,15 @@ def create_grain_config_star8(prop, centerx, centery, initial_combustion, n_star
         prop[centerx + m, centery - m] = initial_combustion
         prop[centerx - m, centery - m] = initial_combustion
         prop[centerx - m, centery + m] = initial_combustion
+
+def create_grain_config_internal_tube(prop, centerx, centery, x, y, initial_combustion, tube_radius):
+    for i in range(x.shape[0]):
+        for j in range(y.shape[0]):
+            distance_to_center = math.sqrt((x[centerx] - x[i])**2 + (y[centery] - y[j])**2)
+
+            if distance_to_center <= tube_radius:
+                prop[i,j] = initial_combustion
+
 
 def create_grain_casing(x, y, centerx, centery, grain_radius = 0.9):
     "Return indices of the actual grain inside the casing assuming a circular shape"

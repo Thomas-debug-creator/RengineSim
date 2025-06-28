@@ -34,8 +34,8 @@ def main():
 
     # Propellant initial grain configuration (star)
     print("Creating initial grain configuration")
-    grain_config = "star_8"
-    prop = create_grain_config(Nx, Ny, centerx, centery, initial_combustion, grain_config)
+    grain_config = "internal_tube"
+    prop = create_grain_config(Nx, Ny, centerx, centery, x, y, initial_combustion, grain_config)
 
     ## Plot initial condition
     im = plot_propellant_surface(ax, prop, max_combustion, "Initial condition")
