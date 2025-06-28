@@ -17,39 +17,41 @@ def initialize_sim_space(Nx, Ny):
     return centerx, centery, x, y
 
 
-def create_grain_config(Nx, Ny, centerx, centery, x, y, initial_combustion, grain_config = "star_8"):
+def create_grain_config(Nx, Ny, centerx, centery, x, y, max_combustion, grain_config = "star_8"):
     prop = np.zeros((Nx,Ny))
 
-    if grain_config == "star_8":
-        n_star = 7
-        n_star_diag = 5
-        create_grain_config_star8(prop, centerx, centery, initial_combustion, n_star, n_star_diag)
+    if grain_config == "internal_tube_slots":
+        tube_radius = 0.3
+        star_radius = 0.8
+        nb_slots = 8
+        create_grain_config_internal_tube_slots(prop, centerx, centery, x, y, max_combustion, star_radius, tube_radius, nb_slots)
     elif grain_config == "internal_tube":
-        tube_radius = 0.2
-        create_grain_config_internal_tube(prop, centerx, centery, x, y, initial_combustion, tube_radius)
+        tube_radius = 0.1
+        create_grain_config_internal_tube(prop, centerx, centery, x, y, max_combustion, tube_radius)
 
     return prop
 
-def create_grain_config_star8(prop, centerx, centery, initial_combustion, n_star = 7, n_star_diag = 5):
-    for m in range(n_star):
-        prop[centerx + m, centery] = initial_combustion
-        prop[centerx, centery - m] = initial_combustion
-        prop[centerx - m, centery] = initial_combustion
-        prop[centerx, centery + m] = initial_combustion
-
-    for m in range(n_star_diag):
-        prop[centerx + m, centery + m] = initial_combustion
-        prop[centerx + m, centery - m] = initial_combustion
-        prop[centerx - m, centery - m] = initial_combustion
-        prop[centerx - m, centery + m] = initial_combustion
-
-def create_grain_config_internal_tube(prop, centerx, centery, x, y, initial_combustion, tube_radius):
+def create_grain_config_internal_tube_slots(prop, centerx, centery, x, y, max_combustion, star_radius, tube_radius, nb_slots):
+    # Internal center tube
     for i in range(x.shape[0]):
         for j in range(y.shape[0]):
             distance_to_center = math.sqrt((x[centerx] - x[i])**2 + (y[centery] - y[j])**2)
 
             if distance_to_center <= tube_radius:
-                prop[i,j] = initial_combustion
+                prop[i,j] = max_combustion
+
+            if distance_to_center <= star_radius and (i - centerx == 0 or j - centery == 0 or i - centerx == j - centery or i - centerx == -(j - centery)):
+                prop[i,j] = max_combustion
+
+    
+
+def create_grain_config_internal_tube(prop, centerx, centery, x, y, max_combustion, tube_radius):
+    for i in range(x.shape[0]):
+        for j in range(y.shape[0]):
+            distance_to_center = math.sqrt((x[centerx] - x[i])**2 + (y[centery] - y[j])**2)
+
+            if distance_to_center <= tube_radius:
+                prop[i,j] = max_combustion
 
 
 def create_grain_casing(x, y, centerx, centery, grain_radius = 0.9):
@@ -134,7 +136,7 @@ def plot_propellant_surface(ax, prop, max_combustion, title = "", animated = Tru
         return im
 
 def process_gif(fig, ims, grain_config):
-    ani = animation.ArtistAnimation(fig, ims, interval=50, blit=True,
+    ani = animation.ArtistAnimation(fig, ims, interval=200, blit=True,
                                     repeat_delay=1000)
     ani.save(f'{grain_config}.mp4')
 

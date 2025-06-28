@@ -26,16 +26,16 @@ def main():
     
 
     ## Combustion parameters
-    max_combustion = 10
+    max_combustion = 3
     initial_combustion = 1
     combustion_rate = 1
-    combustion_propagation_rate = 0.2
-    ignition_threshold = 2
+    combustion_propagation_rate = 0.1
+    ignition_threshold = 1
 
     # Propellant initial grain configuration (star)
     print("Creating initial grain configuration")
     grain_config = "internal_tube"
-    prop = create_grain_config(Nx, Ny, centerx, centery, x, y, initial_combustion, grain_config)
+    prop = create_grain_config(Nx, Ny, centerx, centery, x, y, max_combustion, grain_config)
 
     ## Plot initial condition
     im = plot_propellant_surface(ax, prop, max_combustion, "Initial condition")
