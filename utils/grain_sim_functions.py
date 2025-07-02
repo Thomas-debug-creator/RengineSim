@@ -57,7 +57,7 @@ def create_grain_config(Nx, Ny, centerx, centery, prop_indices, non_prop_indices
     elif grain_config == "double_anchor":
         anchor_inner_radius = 0.5
         anchor_outer_radius = 0.6
-        anchor_pieces_max_angle = math.pi / 4
+        anchor_pieces_max_angle = math.pi / 3
         create_grain_config_double_anchor(prop, centerx, centery, prop_indices, x, y, max_combustion, anchor_inner_radius, anchor_outer_radius, anchor_pieces_max_angle)
 
 
