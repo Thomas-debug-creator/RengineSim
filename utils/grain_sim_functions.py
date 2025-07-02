@@ -40,16 +40,25 @@ def create_grain_config(Nx, Ny, centerx, centery, prop_indices, non_prop_indices
     prop = np.zeros((Nx,Ny))
 
     if grain_config == "internal_tube_slots":
-        tube_radius = 0.3
+        tube_radius = 0.25
         star_radius = 0.5
         nb_slots = 8
         create_grain_config_internal_tube_slots(prop, centerx, centery, prop_indices, x, y, max_combustion, star_radius, tube_radius, nb_slots)
     elif grain_config == "internal_tube":
         tube_radius = 0.3
         create_grain_config_internal_tube(prop, centerx, centery, prop_indices, x, y, max_combustion, tube_radius)
-    elif grain_config == "exteral_burning_rod":
+    elif grain_config == "external_burning_rod":
         inner_tube_radius = 0.7
         create_grain_config_external_rod(prop, centerx, centery, prop_indices, x, y, max_combustion, inner_tube_radius)
+    elif grain_config == "rod_and_tube":
+        inner_tube_radius = 0.45
+        outer_tube_radius = 0.55
+        create_grain_config_rod_and_tube(prop, centerx, centery, prop_indices, x, y, max_combustion, inner_tube_radius, outer_tube_radius)
+    elif grain_config == "double_anchor":
+        anchor_inner_radius = 0.6
+        anchor_outer_radius = 0.7
+        straight_line_width = 0.2
+        create_grain_config_double_anchor(prop, centerx, centery, prop_indices, x, y, max_combustion, anchor_inner_radius, anchor_outer_radius, straight_line_width)
 
 
     for [i,j] in non_prop_indices:
@@ -83,6 +92,21 @@ def create_grain_config_external_rod(prop, centerx, centery, prop_indices, x, y,
 
         if distance_to_center > inner_tube_radius:
             prop[i,j] = max_combustion
+
+def create_grain_config_rod_and_tube(prop, centerx, centery, prop_indices, x, y, max_combustion, inner_tube_radius, outer_tube_radius):
+    for [i,j] in prop_indices:
+        distance_to_center = math.sqrt((x[centerx] - x[i])**2 + (y[centery] - y[j])**2)
+
+        if distance_to_center > inner_tube_radius and distance_to_center <= outer_tube_radius:
+            prop[i,j] = max_combustion
+
+def create_grain_config_double_anchor(prop, centerx, centery, prop_indices, x, y, max_combustion, anchor_inner_radius, anchor_outer_radius, straight_line_width):
+    for [i,j] in prop_indices:
+        distance_to_center = math.sqrt((x[centerx] - x[i])**2 + (y[centery] - y[j])**2)
+
+        if distance_to_center > inner_tube_radius:
+            prop[i,j] = max_combustion
+
 
 
 def compute_nb_burning_elements(prop, Nx, Ny, max_combustion):
@@ -139,10 +163,10 @@ def compute_non_burning_neighbours(prop, i, j, ref_ignition_indices, prop_indice
 
 """ Plots """
 
-def plot_propellant_surface(ax, prop, max_combustion, title = "", animated = True):
+def plot_propellant_surface(ax, prop, max_combustion, grain_config, animated = True):
     
     im = ax.imshow(prop, interpolation="bilinear", cmap = "hot", vmin = -1, vmax = max_combustion, animated = animated)
-    ax.set_title(title)
+    ax.set_title(f'Combustion surface for the {grain_config} configuration')
     
     ax.set_yticklabels([])
     ax.set_xticklabels([])
@@ -161,7 +185,7 @@ def plot_combustion_surface(num_steps, nb_burning_elements, grain_config):
     plt.plot(range(num_steps + 1), nb_burning_elements)
     plt.xlabel("Simulation step")
     plt.ylabel("Number of burning elements")
-    plt.title(f'Evolution of the combustion surface for a {grain_config} grain configuration')
+    plt.title(f'Burning elements for the {grain_config} configuration')
 
     plt.savefig(f'Combustion_surface_{grain_config}')
 

@@ -34,7 +34,7 @@ def main():
 
     # Propellant initial grain configuration (star)
     print("Creating initial grain configuration")
-    grain_config = "internal_tube" #Choices are exteral_burning_rod, internal_tube_slots, internal_tube
+    grain_config = "rod_and_tube" #Choices are external_burning_rod, internal_tube_slots, internal_tube, rod_and_tube
     prop = create_grain_config(Nx, Ny, centerx, centery, prop_indices, non_prop_indices, x, y, max_combustion, grain_config)
 
     ## Plot initial condition
@@ -63,7 +63,7 @@ def main():
         current_time += delta_t
         prop = simulate_next_step(prop, max_combustion, initial_combustion, combustion_rate, ignition_threshold, ref_ignition_indices, prop_indices, default_config)
 
-        im = plot_propellant_surface(ax, prop, max_combustion, f"Propellant surface evolution over {num_steps} steps")
+        im = plot_propellant_surface(ax, prop, max_combustion, grain_config)
         ims.append([im])
 
 
