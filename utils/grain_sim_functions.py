@@ -51,14 +51,14 @@ def create_grain_config(Nx, Ny, centerx, centery, prop_indices, non_prop_indices
         inner_tube_radius = 0.7
         create_grain_config_external_rod(prop, centerx, centery, prop_indices, x, y, max_combustion, inner_tube_radius)
     elif grain_config == "rod_and_tube":
-        inner_tube_radius = 0.45
+        inner_tube_radius = 0.4
         outer_tube_radius = 0.55
         create_grain_config_rod_and_tube(prop, centerx, centery, prop_indices, x, y, max_combustion, inner_tube_radius, outer_tube_radius)
     elif grain_config == "double_anchor":
-        anchor_inner_radius = 0.6
-        anchor_outer_radius = 0.7
-        straight_line_width = 0.2
-        create_grain_config_double_anchor(prop, centerx, centery, prop_indices, x, y, max_combustion, anchor_inner_radius, anchor_outer_radius, straight_line_width)
+        anchor_inner_radius = 0.5
+        anchor_outer_radius = 0.6
+        anchor_pieces_max_angle = math.pi / 4
+        create_grain_config_double_anchor(prop, centerx, centery, prop_indices, x, y, max_combustion, anchor_inner_radius, anchor_outer_radius, anchor_pieces_max_angle)
 
 
     for [i,j] in non_prop_indices:
@@ -100,12 +100,22 @@ def create_grain_config_rod_and_tube(prop, centerx, centery, prop_indices, x, y,
         if distance_to_center > inner_tube_radius and distance_to_center <= outer_tube_radius:
             prop[i,j] = max_combustion
 
-def create_grain_config_double_anchor(prop, centerx, centery, prop_indices, x, y, max_combustion, anchor_inner_radius, anchor_outer_radius, straight_line_width):
+def create_grain_config_double_anchor(prop, centerx, centery, prop_indices, x, y, max_combustion, anchor_inner_radius, anchor_outer_radius, anchor_pieces_max_angle):
+    
     for [i,j] in prop_indices:
         distance_to_center = math.sqrt((x[centerx] - x[i])**2 + (y[centery] - y[j])**2)
+        angle_to_center = math.atan((y[centery] - y[j])/(x[centerx] - x[i]))
 
-        if distance_to_center > inner_tube_radius:
+        # Straight line
+        if distance_to_center <= anchor_inner_radius and j - centery == 0:
             prop[i,j] = max_combustion
+        
+        # Angle pieces
+        if distance_to_center > anchor_inner_radius and distance_to_center <= anchor_outer_radius:
+            if abs(angle_to_center) <= anchor_pieces_max_angle:
+                prop[i,j] = max_combustion
+
+
 
 
 

@@ -34,7 +34,7 @@ def main():
 
     # Propellant initial grain configuration (star)
     print("Creating initial grain configuration")
-    grain_config = "rod_and_tube" #Choices are external_burning_rod, internal_tube_slots, internal_tube, rod_and_tube
+    grain_config = "double_anchor" #Choices are external_burning_rod, internal_tube_slots, internal_tube, rod_and_tube
     prop = create_grain_config(Nx, Ny, centerx, centery, prop_indices, non_prop_indices, x, y, max_combustion, grain_config)
 
     ## Plot initial condition
