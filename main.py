@@ -22,7 +22,7 @@ def main():
     ## Propellant casing (non burning surface)
     print("Initializing grain casing")
     grain_radius = 0.9
-    prop_indices = create_grain_casing(x, y, centerx, centery, grain_radius)
+    prop_indices, non_prop_indices, default_config = create_grain_casing(x, y, centerx, centery, grain_radius)
     
 
     ## Combustion parameters
@@ -34,8 +34,8 @@ def main():
 
     # Propellant initial grain configuration (star)
     print("Creating initial grain configuration")
-    grain_config = "exteral_burning_rod"
-    prop = create_grain_config(Nx, Ny, centerx, centery, x, y, max_combustion, grain_config)
+    grain_config = "internal_tube" #Choices are exteral_burning_rod, internal_tube_slots, internal_tube
+    prop = create_grain_config(Nx, Ny, centerx, centery, prop_indices, non_prop_indices, x, y, max_combustion, grain_config)
 
     ## Plot initial condition
     im = plot_propellant_surface(ax, prop, max_combustion, "Initial condition")
@@ -61,7 +61,7 @@ def main():
     for n in range(num_steps):
         print(f'Simulating step {n}')
         current_time += delta_t
-        prop = simulate_next_step(prop, max_combustion, initial_combustion, combustion_rate, ignition_threshold, ref_ignition_indices, prop_indices)
+        prop = simulate_next_step(prop, max_combustion, initial_combustion, combustion_rate, ignition_threshold, ref_ignition_indices, prop_indices, default_config)
 
         im = plot_propellant_surface(ax, prop, max_combustion, f"Propellant surface evolution over {num_steps} steps")
         ims.append([im])

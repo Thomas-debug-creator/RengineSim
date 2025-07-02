@@ -16,61 +16,13 @@ def initialize_sim_space(Nx, Ny):
 
     return centerx, centery, x, y
 
-
-def create_grain_config(Nx, Ny, centerx, centery, x, y, max_combustion, grain_config = "star_8"):
-    prop = np.zeros((Nx,Ny))
-
-    if grain_config == "internal_tube_slots":
-        tube_radius = 0.3
-        star_radius = 0.5
-        nb_slots = 8
-        create_grain_config_internal_tube_slots(prop, centerx, centery, x, y, max_combustion, star_radius, tube_radius, nb_slots)
-    elif grain_config == "internal_tube":
-        tube_radius = 0.3
-        create_grain_config_internal_tube(prop, centerx, centery, x, y, max_combustion, tube_radius)
-    elif grain_config == "exteral_burning_rod":
-        inner_tube_radius = 0.7
-        create_grain_config_external_rod(prop, centerx, centery, x, y, max_combustion, inner_tube_radius)
-
-    return prop
-
-def create_grain_config_internal_tube_slots(prop, centerx, centery, x, y, max_combustion, star_radius, tube_radius, nb_slots):
-    # Internal center tube
-    for i in range(x.shape[0]):
-        for j in range(y.shape[0]):
-            distance_to_center = math.sqrt((x[centerx] - x[i])**2 + (y[centery] - y[j])**2)
-
-            if distance_to_center <= tube_radius:
-                prop[i,j] = max_combustion
-
-            if distance_to_center <= star_radius and (i - centerx == 0 or j - centery == 0 or i - centerx == j - centery or i - centerx == -(j - centery)):
-                prop[i,j] = max_combustion
-
-    
-
-def create_grain_config_internal_tube(prop, centerx, centery, x, y, max_combustion, tube_radius):
-    for i in range(x.shape[0]):
-        for j in range(y.shape[0]):
-            distance_to_center = math.sqrt((x[centerx] - x[i])**2 + (y[centery] - y[j])**2)
-
-            if distance_to_center <= tube_radius:
-                prop[i,j] = max_combustion
-
-def create_grain_config_external_rod(prop, centerx, centery, x, y, max_combustion, inner_tube_radius):
-    for i in range(x.shape[0]):
-        for j in range(y.shape[0]):
-            distance_to_center = math.sqrt((x[centerx] - x[i])**2 + (y[centery] - y[j])**2)
-
-            if distance_to_center > inner_tube_radius:
-                prop[i,j] = max_combustion
-
-
-
 def create_grain_casing(x, y, centerx, centery, grain_radius = 0.9):
     "Return indices of the actual grain inside the casing assuming a circular shape"
     "Elements inside these indices can burn, while those outside are considered out of the casing and are therefore not considered in the simulation"
 
     prop_indices = []
+    non_prop_indices = []
+    default_config = np.zeros((x.shape[0], y.shape[0]))
 
     for i in range(x.shape[0]):
         for j in range(y.shape[0]):
@@ -78,8 +30,59 @@ def create_grain_casing(x, y, centerx, centery, grain_radius = 0.9):
 
             if distance_to_center <= grain_radius:
                 prop_indices.append([i,j])
+            else:
+                non_prop_indices.append([i,j])
+                default_config[i,j] = -1
+                
+    return prop_indices, non_prop_indices, default_config
 
-    return prop_indices
+def create_grain_config(Nx, Ny, centerx, centery, prop_indices, non_prop_indices, x, y, max_combustion, grain_config = "star_8"):
+    prop = np.zeros((Nx,Ny))
+
+    if grain_config == "internal_tube_slots":
+        tube_radius = 0.3
+        star_radius = 0.5
+        nb_slots = 8
+        create_grain_config_internal_tube_slots(prop, centerx, centery, prop_indices, x, y, max_combustion, star_radius, tube_radius, nb_slots)
+    elif grain_config == "internal_tube":
+        tube_radius = 0.3
+        create_grain_config_internal_tube(prop, centerx, centery, prop_indices, x, y, max_combustion, tube_radius)
+    elif grain_config == "exteral_burning_rod":
+        inner_tube_radius = 0.7
+        create_grain_config_external_rod(prop, centerx, centery, prop_indices, x, y, max_combustion, inner_tube_radius)
+
+
+    for [i,j] in non_prop_indices:
+        prop[i,j] = -1
+    return prop
+
+def create_grain_config_internal_tube_slots(prop, centerx, centery, prop_indices, x, y, max_combustion, star_radius, tube_radius, nb_slots):
+    # Internal center tube
+    for [i,j] in prop_indices:
+        distance_to_center = math.sqrt((x[centerx] - x[i])**2 + (y[centery] - y[j])**2)
+
+        if distance_to_center <= tube_radius:
+            prop[i,j] = max_combustion
+
+        if distance_to_center <= star_radius and (i - centerx == 0 or j - centery == 0 or i - centerx == j - centery or i - centerx == -(j - centery)):
+            prop[i,j] = max_combustion
+
+    
+
+def create_grain_config_internal_tube(prop, centerx, centery, prop_indices, x, y, max_combustion, tube_radius):
+    
+    for [i,j] in prop_indices:
+        distance_to_center = math.sqrt((x[centerx] - x[i])**2 + (y[centery] - y[j])**2)
+
+        if distance_to_center <= tube_radius:
+            prop[i,j] = max_combustion
+
+def create_grain_config_external_rod(prop, centerx, centery, prop_indices, x, y, max_combustion, inner_tube_radius):
+    for [i,j] in prop_indices:
+        distance_to_center = math.sqrt((x[centerx] - x[i])**2 + (y[centery] - y[j])**2)
+
+        if distance_to_center > inner_tube_radius:
+            prop[i,j] = max_combustion
 
 
 def compute_nb_burning_elements(prop, Nx, Ny, max_combustion):
@@ -93,8 +96,8 @@ def compute_ignition_radius(combustion_propagation_rate, delta_t, Nx, Ny, center
 
     return ref_ignition_indices
 
-def simulate_next_step(prop, max_combustion, initial_combustion, combustion_rate, ignition_threshold, ref_ignition_indices, prop_indices):
-    new_prop = np.zeros_like(prop)
+def simulate_next_step(prop, max_combustion, initial_combustion, combustion_rate, ignition_threshold, ref_ignition_indices, prop_indices, default_config):
+    new_prop = default_config.copy()
 
     burning_elements_indices = np.argwhere(prop > tolerance)
 
@@ -138,7 +141,7 @@ def compute_non_burning_neighbours(prop, i, j, ref_ignition_indices, prop_indice
 
 def plot_propellant_surface(ax, prop, max_combustion, title = "", animated = True):
     
-    im = ax.imshow(prop, interpolation="bilinear", cmap = "hot", vmin = 0, vmax = max_combustion, animated = animated)
+    im = ax.imshow(prop, interpolation="bilinear", cmap = "hot", vmin = -1, vmax = max_combustion, animated = animated)
     ax.set_title(title)
     
     ax.set_yticklabels([])
