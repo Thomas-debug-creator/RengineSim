@@ -6,6 +6,7 @@ import math
 
 tolerance = 0.01
 
+output_folder = 'output/'
 def initialize_sim_space(Nx, Ny):
     "Nx and Ny must be odd!"
     centerx = math.floor(Nx/2)
@@ -41,9 +42,9 @@ def create_grain_config(Nx, Ny, centerx, centery, prop_indices, non_prop_indices
 
     if grain_config == "internal_tube_slots":
         tube_radius = 0.25
-        star_radius = 0.5
-        nb_slots = 8
-        create_grain_config_internal_tube_slots(prop, centerx, centery, prop_indices, x, y, max_combustion, star_radius, tube_radius, nb_slots)
+        star_radius = 0.55
+        max_diag_diff = 2
+        create_grain_config_internal_tube_slots(prop, centerx, centery, prop_indices, x, y, max_combustion, star_radius, tube_radius, max_diag_diff)
     elif grain_config == "internal_tube":
         tube_radius = 0.3
         create_grain_config_internal_tube(prop, centerx, centery, prop_indices, x, y, max_combustion, tube_radius)
@@ -51,21 +52,23 @@ def create_grain_config(Nx, Ny, centerx, centery, prop_indices, non_prop_indices
         inner_tube_radius = 0.7
         create_grain_config_external_rod(prop, centerx, centery, prop_indices, x, y, max_combustion, inner_tube_radius)
     elif grain_config == "rod_and_tube":
-        inner_tube_radius = 0.4
-        outer_tube_radius = 0.55
+        inner_tube_radius = 0.47
+        outer_tube_radius = 0.53
         create_grain_config_rod_and_tube(prop, centerx, centery, prop_indices, x, y, max_combustion, inner_tube_radius, outer_tube_radius)
     elif grain_config == "double_anchor":
         anchor_inner_radius = 0.5
         anchor_outer_radius = 0.6
         anchor_pieces_max_angle = math.pi / 3
-        create_grain_config_double_anchor(prop, centerx, centery, prop_indices, x, y, max_combustion, anchor_inner_radius, anchor_outer_radius, anchor_pieces_max_angle)
+        max_center_diff = 1
+        central_tube_radius = 0.1
+        create_grain_config_double_anchor(prop, centerx, centery, prop_indices, x, y, max_combustion, anchor_inner_radius, anchor_outer_radius, anchor_pieces_max_angle, max_center_diff, central_tube_radius)
 
 
     for [i,j] in non_prop_indices:
         prop[i,j] = -1
     return prop
 
-def create_grain_config_internal_tube_slots(prop, centerx, centery, prop_indices, x, y, max_combustion, star_radius, tube_radius, nb_slots):
+def create_grain_config_internal_tube_slots(prop, centerx, centery, prop_indices, x, y, max_combustion, star_radius, tube_radius, max_diag_diff):
     # Internal center tube
     for [i,j] in prop_indices:
         distance_to_center = math.sqrt((x[centerx] - x[i])**2 + (y[centery] - y[j])**2)
@@ -73,8 +76,15 @@ def create_grain_config_internal_tube_slots(prop, centerx, centery, prop_indices
         if distance_to_center <= tube_radius:
             prop[i,j] = max_combustion
 
-        if distance_to_center <= star_radius and (i - centerx == 0 or j - centery == 0 or i - centerx == j - centery or i - centerx == -(j - centery)):
-            prop[i,j] = max_combustion
+        # (i - centerx == j - centery or i - centerx == -(j - centery)):
+            
+
+        
+        if distance_to_center <= star_radius:
+            diag_diff_1 = abs(i - centerx - (j - centery))
+            diag_diff_2 = abs(i - centerx + (j - centery))
+            if (abs(i - centerx) <= max_diag_diff or abs(j - centery) <= max_diag_diff or diag_diff_1 <= max_diag_diff  or diag_diff_2 <= max_diag_diff):
+                prop[i,j] = max_combustion
 
     
 
@@ -100,14 +110,18 @@ def create_grain_config_rod_and_tube(prop, centerx, centery, prop_indices, x, y,
         if distance_to_center > inner_tube_radius and distance_to_center <= outer_tube_radius:
             prop[i,j] = max_combustion
 
-def create_grain_config_double_anchor(prop, centerx, centery, prop_indices, x, y, max_combustion, anchor_inner_radius, anchor_outer_radius, anchor_pieces_max_angle):
+def create_grain_config_double_anchor(prop, centerx, centery, prop_indices, x, y, max_combustion, anchor_inner_radius, anchor_outer_radius, anchor_pieces_max_angle, max_center_diff, central_tube_radius):
     
     for [i,j] in prop_indices:
         distance_to_center = math.sqrt((x[centerx] - x[i])**2 + (y[centery] - y[j])**2)
         angle_to_center = math.atan((y[centery] - y[j])/(x[centerx] - x[i]))
 
+        # Central tube
+        if distance_to_center <= central_tube_radius:
+            prop[i,j] = max_combustion
+
         # Straight line
-        if distance_to_center <= anchor_inner_radius and j - centery == 0:
+        if distance_to_center <= anchor_inner_radius and abs(j - centery) <= max_center_diff:
             prop[i,j] = max_combustion
         
         # Angle pieces
@@ -187,7 +201,7 @@ def plot_propellant_surface(ax, prop, max_combustion, grain_config, animated = T
 def process_gif(fig, ims, grain_config):
     ani = animation.ArtistAnimation(fig, ims, interval=200, blit=True,
                                     repeat_delay=1000)
-    ani.save(f'{grain_config}.mp4')
+    ani.save(output_folder + f'{grain_config}.mp4')
 
     plt.show()
 
@@ -197,6 +211,6 @@ def plot_combustion_surface(num_steps, nb_burning_elements, grain_config):
     plt.ylabel("Number of burning elements")
     plt.title(f'Burning elements for the {grain_config} configuration')
 
-    plt.savefig(f'Combustion_surface_{grain_config}')
+    plt.savefig(output_folder + f'Combustion_surface_{grain_config}')
 
     plt.show()

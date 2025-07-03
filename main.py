@@ -14,14 +14,14 @@ def main():
     ## Initialize simulation space
     print("Initializing simulation space")
 
-    N = 31 # WARNING: N MUST BE ODD
+    N = 51 # WARNING: N MUST BE ODD
     Nx = N
     Ny = N
     centerx, centery, x, y = initialize_sim_space(Nx, Ny)
 
     ## Propellant casing (non burning surface)
     print("Initializing grain casing")
-    grain_radius = 0.9
+    grain_radius = 0.98
     prop_indices, non_prop_indices, default_config = create_grain_casing(x, y, centerx, centery, grain_radius)
     
 
@@ -34,7 +34,7 @@ def main():
 
     # Propellant initial grain configuration (star)
     print("Creating initial grain configuration")
-    grain_config = "rod_and_tube" #Choices are external_burning_rod, internal_tube_slots, internal_tube, rod_and_tube
+    grain_config = "double_anchor" #Choices are external_burning_rod, internal_tube_slots, internal_tube, rod_and_tube
     prop = create_grain_config(Nx, Ny, centerx, centery, prop_indices, non_prop_indices, x, y, max_combustion, grain_config)
 
     ## Plot initial condition
